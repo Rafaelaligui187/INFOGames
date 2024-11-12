@@ -1,4 +1,4 @@
-# TechFolio Hub
+# INFOGames
 INFOGames app.
 
 # Features
