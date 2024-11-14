@@ -2,16 +2,14 @@
 INFOGames app.
 
 # Features
-* Share Projects
-* Message other developers
-* Rate others work
-* Search other developers
+* Favorite Functionality
+* Search Functionality
+* Profile Management
 
 # Course Overview
 * Basic React Native Components
 * Database Design using Appwrite
 * User Registration & Authenticaiton
-* Deployment
 
 # Tech Stack
 * React Native
