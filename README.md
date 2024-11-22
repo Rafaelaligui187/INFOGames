@@ -1,5 +1,5 @@
 # INFOGames
-INFOGames
+INFOGames is a mobile app that allows users to explore detailed information about their favorite video games, all conveniently accessible on their mobile devices.
 
 # Features
 * Favorite Functionality

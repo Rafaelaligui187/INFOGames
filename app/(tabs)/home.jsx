@@ -1,50 +1,129 @@
 import { View, Text, Image, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import axios from 'axios';
 
 const Home = () => {
   const router = useRouter();
-  
-  const images = [
-    { name: "God of War", source: { uri: "https://static.posters.cz/image/750/plakaty/playstation-god-of-war-i116582.jpg" } },
-    { name: "Assassin Creed Unity", source: { uri: "https://upload.wikimedia.org/wikipedia/en/4/41/Assassin%27s_Creed_Unity_cover.jpg" } },
-    { name: "Crossfire", source: { uri: "https://mmoculture.com/wp-content/uploads/2020/02/CrossFire-new-image.png" } },
-    { name: "DayZ", source: { uri: "https://static-cdn.jtvnw.net/ttv-boxart/65632_IGDB-272x380.jpg" } },
-    { name: "Dota 2", source: { uri: "https://upload.wikimedia.org/wikipedia/en/thumb/3/31/Dota_2_Steam_artwork.jpg/220px-Dota_2_Steam_artwork.jpg" } },
-    { name: "Formula 1 2024", source: { uri: "https://upload.wikimedia.org/wikipedia/en/5/55/F1_24_cover_art.jpg" } },
-    { name: "Genshin Impact", source: { uri: "https://laz-img-sg.alicdn.com/p/5aed6972debf08bb54bbd759ebd19a38.png" } },
-    { name: "Ghost of Tsushima", source: { uri: "https://helios-i.mashable.com/imagery/articles/00iMVz5oU69RK9UEoPsZTMW/hero-image.fill.size_1248x702.v1623390188.jpg" } },
-    { name: "Grand Theft Auto V", source: { uri: "https://upload.wikimedia.org/wikipedia/en/thumb/a/a5/Grand_Theft_Auto_V.png/220px-Grand_Theft_Auto_V.png" } },
-    { name: "Infamous", source: { uri: "https://upload.wikimedia.org/wikipedia/en/2/2b/Infamous-cover.jpg" } },
-    { name: "Naruto Ninja Storm", source: { uri: "https://upload.wikimedia.org/wikipedia/en/4/44/Naruto-_Ultimate_NS1_box_art.jpg" } },
-    { name: "NBA 2K24", source: { uri: "https://4kwallpapers.com/images/wallpapers/nba-2k24-2023-games-768x1024-12701.jpg" } },
-    { name: "Prototype", source: { uri: "https://images2.alphacoders.com/167/167390.jpg" } },
-    { name: "Roblox", source: { uri: "https://images.rbxcdn.com/5348266ea6c5e67b19d6a814cbbb70f6.jpg" } },
-    { name: "Sleeping Dogs", source: { uri: "https://upload.wikimedia.org/wikipedia/en/thumb/9/90/Sleeping_Dogs_-_Square_Enix_video_game_cover.jpg/220px-Sleeping_Dogs_-_Square_Enix_video_game_cover.jpg" } },
-    { name: "Spider-Man", source: { uri: "https://upload.wikimedia.org/wikipedia/en/thumb/e/e1/Spider-Man_PS4_cover.jpg/220px-Spider-Man_PS4_cover.jpg" } },
-    { name: "Stardew Valley", source: { uri: "https://images4.alphacoders.com/782/782781.png" } },
-    { name: "Watch Dogs", source: { uri: "https://m.media-amazon.com/images/M/MV5BMjRhMmRhYjItMmFkNC00MDk0LTkxMDMtZmY3ZWEwMDJjNmFkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg" } },
-    { name: "Minecraft", source: { uri: "https://m.media-amazon.com/images/M/MV5BNjQzMDlkNDctYmE3Yi00ZWFiLTlmOWYtMjI4MzQ4Y2JhZjY2XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg" } },
-  ];
-  
-
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredImages, setFilteredImages] = useState(images); 
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0); // Track the current page for pagination
+  const [hasMore, setHasMore] = useState(true); // Track if there are more games to load
 
-  const handleSearch = (text) => {
+  useEffect(() => {
+    fetchGames(); // Fetch games on component mount
+  }, []);
+
+  const fetchGames = async (isLoadMore = false) => {
+    if (loading || (isLoadMore && !hasMore)) return; // Prevent duplicate fetches
+    setLoading(true);
+    try {
+      const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi';
+      const accessToken = 'm6snrsxd6wl2o1v2iz8sjzlonyzskj';
+      const offset = isLoadMore ? page * 20 : 0; // Calculate offset for pagination
+  
+      const response = await axios.post(
+        'https://api.igdb.com/v4/games',
+        `fields id, name, cover.url; sort popularity desc; limit 20; offset ${offset};`,
+        {
+          headers: {
+            'Client-ID': clientId,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      console.log("Fetched Games:", response.data);
+
+      const fetchedGames = response.data.map((game) => {
+        // Check if the cover URL exists and is valid
+        const coverUrl = game.cover?.url;
+        if (coverUrl) {
+          return {
+            id: game.id,
+            name: game.name,
+            source: { uri: coverUrl.replace('t_thumb', 't_cover_big') },
+          };
+        } else {
+          return {
+            id: game.id,
+            name: game.name,
+            source: { uri: 'https://via.placeholder.com/150' }, // Fallback image
+          };
+        }
+      });
+  
+      setGames((prevGames) => (isLoadMore ? [...prevGames, ...fetchedGames] : fetchedGames));
+      setHasMore(fetchedGames.length > 0); // If no games are fetched, stop loading more
+      if (isLoadMore) setPage((prevPage) => prevPage + 1);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async (text) => {
     setSearchQuery(text);
-    const filtered = images.filter((image) =>
-      image.name.toLowerCase().includes(text.toLowerCase())
+    setPage(0);
+    setHasMore(true); // Reset pagination state for search
+    if (text.length === 0) {
+      fetchGames(); // Reset to random games if search query is cleared
+      return;
+    }
+
+    setLoading(true);
+  try {
+    const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi';
+    const accessToken = 'kwx509r1frczzx64zzqecqvit2y12z';
+
+    const response = await axios.post(
+      'https://api.igdb.com/v4/games',
+      `search "${text}"; fields id, name, cover.url; limit 20;`,
+      {
+        headers: {
+          'Client-ID': clientId,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
     );
-    setFilteredImages(filtered);
+
+    console.log("Search Response:", response.data);
+
+    const searchedGames = response.data.map((game) => {
+      const coverUrl = game.cover?.url;
+      if (coverUrl) {
+        return {
+          id: game.id,
+          name: game.name,
+          source: { uri: coverUrl.replace('t_thumb', 't_cover_big') },
+        };
+      } else {
+        return {
+          id: game.id,
+          name: game.name,
+          source: { uri: 'https://via.placeholder.com/150' }, // Fallback image
+        };
+      }
+    });
+
+    setGames(searchedGames);
+    setHasMore(searchedGames.length > 0);
+  } catch (error) {
+    console.error('Error fetching search results:', error);
+    setGames([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const handleThumbnailPress = (id) => {
+    router.push({ pathname: '/Gameinfo', params: { gameId: id } });
   };
 
-  const handleThumbnailPress = (name) => {
-    router.push({ pathname: '/Gameinfo', params: { game: name } }); 
-  };
-
-  const renderItem = ({ item }) => (
-    <TouchableOpacity onPress={() => handleThumbnailPress(item.name)}>
+  const renderItem = ({ item, index }) => (
+    <TouchableOpacity onPress={() => handleThumbnailPress(item.id)}>
       <View style={styles.itemContainer}>
         <Image source={item.source} style={styles.image} />
         <Text style={styles.text}>{item.name}</Text>
@@ -56,16 +135,23 @@ const Home = () => {
     <View style={styles.container}>
       <TextInput
         style={styles.searchInput}
-        placeholder="Search"
+        placeholder="Search games"
         value={searchQuery}
         onChangeText={handleSearch}
       />
+      {loading && page === 0 ? (
+        <Text style={{ textAlign: 'center' }}>Loading...</Text>
+      ) : (
       <FlatList
-        data={filteredImages} 
+        data={games}
         renderItem={renderItem}
-        keyExtractor={item => item.name}
+        keyExtractor={(item, index) => `${item.id}-${index}`} // Ensure unique keys by combining id and index
         numColumns={2}
-      />
+        onEndReached={() => fetchGames(true)} // Load more when reaching the end
+        onEndReachedThreshold={0.5} // Trigger when 50% away from the bottom
+        ListFooterComponent={loading && <Text style={{textAlign: 'center'}}>Loading more...</Text>} // Show loading indicator at the bottom
+    />
+      )}
     </View>
   );
 };
@@ -80,7 +166,7 @@ const styles = StyleSheet.create({
     borderColor: 'gray',
     paddingLeft: 8,
     margin: 10,
-    borderRadius: 5,
+    borderRadius: 50,
     backgroundColor: '#32D3CA',
   },
   itemContainer: {
@@ -88,17 +174,18 @@ const styles = StyleSheet.create({
     margin: 10,
   },
   image: {
-    alignItems: 'center',
     width: 150,
     height: 200,
-    resizeMode: "stretch",
+    resizeMode: 'cover',
     borderRadius: 10,
   },
   text: {
     marginTop: 5,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
+    width: 150,
+    lineHeight: 18,
   },
 });
 
