@@ -1,31 +1,28 @@
-import { View, Text, Image, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { View, Text, TextInput, FlatList, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 
 const Home = () => {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
   const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0); // Track the current page for pagination
-  const [hasMore, setHasMore] = useState(true); // Track if there are more games to load
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1); // Track the current page
+  const [isEndReached, setIsEndReached] = useState(false); // Flag to prevent unnecessary API calls
 
+  // Fetch games on component mount and page change
   useEffect(() => {
-    fetchGames(); // Fetch games on component mount
-  }, []);
+    fetchGames(page);
+  }, [page]);
 
-  const fetchGames = async (isLoadMore = false) => {
-    if (loading || (isLoadMore && !hasMore)) return; // Prevent duplicate fetches
+  const fetchGames = async (pageNumber) => {
     setLoading(true);
     try {
-      const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi';
-      const accessToken = 'm6snrsxd6wl2o1v2iz8sjzlonyzskj';
-      const offset = isLoadMore ? page * 20 : 0; // Calculate offset for pagination
-  
+      const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi'; // Replace with your IGDB Client-ID
+      const accessToken = 'kq7czy3yghxsjrx5kinwzjf5x2nzlx'; // Replace with your IGDB Access Token
+
       const response = await axios.post(
         'https://api.igdb.com/v4/games',
-        `fields id, name, cover.url; sort popularity desc; limit 20; offset ${offset};`,
+        `fields id, name, cover.url; sort popularity desc; limit 10; offset ${(pageNumber - 1) * 10};`,
         {
           headers: {
             'Client-ID': clientId,
@@ -34,31 +31,22 @@ const Home = () => {
         }
       );
 
-      console.log("Fetched Games:", response.data);
+      const formattedGames = response.data.map((game) => ({
+        id: game.id,
+        name: game.name,
+        coverUrl: game.cover
+          ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+          : null,
+      }));
 
-      const fetchedGames = response.data.map((game) => {
-        // Check if the cover URL exists and is valid
-        const coverUrl = game.cover?.url;
-        if (coverUrl) {
-          return {
-            id: game.id,
-            name: game.name,
-            source: { uri: coverUrl.replace('t_thumb', 't_cover_big') },
-          };
-        } else {
-          return {
-            id: game.id,
-            name: game.name,
-            source: { uri: 'https://via.placeholder.com/150' }, // Fallback image
-          };
-        }
-      });
-  
-      setGames((prevGames) => (isLoadMore ? [...prevGames, ...fetchedGames] : fetchedGames));
-      setHasMore(fetchedGames.length > 0); // If no games are fetched, stop loading more
-      if (isLoadMore) setPage((prevPage) => prevPage + 1);
+      // If there are fewer games than requested, set isEndReached to true
+      if (formattedGames.length < 10) {
+        setIsEndReached(true);
+      }
+
+      setGames((prevGames) => [...prevGames, ...formattedGames]);
     } catch (error) {
-      console.error('Error fetching games:', error);
+      console.error('Error fetching games:', error.message);
     } finally {
       setLoading(false);
     }
@@ -66,70 +54,82 @@ const Home = () => {
 
   const handleSearch = async (text) => {
     setSearchQuery(text);
-    setPage(0);
-    setHasMore(true); // Reset pagination state for search
-    if (text.length === 0) {
-      fetchGames(); // Reset to random games if search query is cleared
+  
+    // If the search query is empty, reset to default games (no search)
+    if (!text.trim()) {
+      setGames([]); // Clear the game list
+      fetchGames(page); // Fetch the default games (without search)
       return;
     }
-
+  
     setLoading(true);
-  try {
-    const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi';
-    const accessToken = 'kwx509r1frczzx64zzqecqvit2y12z';
-
-    const response = await axios.post(
-      'https://api.igdb.com/v4/games',
-      `search "${text}"; fields id, name, cover.url; limit 20;`,
-      {
-        headers: {
-          'Client-ID': clientId,
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    console.log("Search Response:", response.data);
-
-    const searchedGames = response.data.map((game) => {
-      const coverUrl = game.cover?.url;
-      if (coverUrl) {
-        return {
+    try {
+      const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi'; // Replace with your IGDB Client-ID
+      const accessToken = 'kq7czy3yghxsjrx5kinwzjf5x2nzlx'; // Replace with your IGDB Access Token
+  
+      // Throttle by waiting 1 second before making the request to avoid overloading the API
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+  
+      const query = `search "${text}"; fields id, name, cover.url; limit 10;`;
+  
+      if (text.trim()) { // Only make the request if there is valid input
+        console.log('Making request with query:', query); // Log the query
+        const response = await axios.post(
+          'https://api.igdb.com/v4/games',
+          query,
+          {
+            headers: {
+              'Client-ID': clientId,
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+  
+        const formattedGames = response.data.map((game) => ({
           id: game.id,
           name: game.name,
-          source: { uri: coverUrl.replace('t_thumb', 't_cover_big') },
-        };
-      } else {
-        return {
-          id: game.id,
-          name: game.name,
-          source: { uri: 'https://via.placeholder.com/150' }, // Fallback image
-        };
+          coverUrl: game.cover
+            ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+            : null,
+        }));
+  
+        setGames(formattedGames);
       }
-    });
-
-    setGames(searchedGames);
-    setHasMore(searchedGames.length > 0);
-  } catch (error) {
-    console.error('Error fetching search results:', error);
-    setGames([]);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const handleThumbnailPress = (id) => {
-    router.push({ pathname: '/Gameinfo', params: { gameId: id } });
+    } catch (error) {
+      console.error('Error fetching games:', error.message);
+      if (error.response) {
+        console.error('Response data:', error.response.data); // Log the error response
+      }
+      if (error.response && error.response.status === 400) {
+        console.log('Bad request error. Please check the query or API parameters.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const renderItem = ({ item, index }) => (
-    <TouchableOpacity onPress={() => handleThumbnailPress(item.id)}>
-      <View style={styles.itemContainer}>
-        <Image source={item.source} style={styles.image} />
-        <Text style={styles.text}>{item.name}</Text>
-      </View>
+  const renderGameItem = ({ item, index }) => (
+    <TouchableOpacity style={styles.gameItem}>
+      {item.coverUrl ? (
+        <Image source={{ uri: item.coverUrl }} style={styles.gameImage} />
+      ) : (
+        <View style={styles.noImage}>
+          <Text>No Image</Text>
+        </View>
+      )}
+      <Text style={styles.gameTitle}>{item.name}</Text>
     </TouchableOpacity>
   );
+  
+  // Use the index and id to create a unique key
+  const keyExtractor = (item, index) => `${item.id}-${index}`;
+
+  // Function to trigger when the user reaches the bottom of the list
+  const handleLoadMore = () => {
+    if (!loading && !isEndReached) {
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -139,18 +139,18 @@ const Home = () => {
         value={searchQuery}
         onChangeText={handleSearch}
       />
-      {loading && page === 0 ? (
-        <Text style={{ textAlign: 'center' }}>Loading...</Text>
+      {loading && page === 1 ? (
+        <ActivityIndicator size="large" color="#0000ff" />
       ) : (
-      <FlatList
-        data={games}
-        renderItem={renderItem}
-        keyExtractor={(item, index) => `${item.id}-${index}`} // Ensure unique keys by combining id and index
-        numColumns={2}
-        onEndReached={() => fetchGames(true)} // Load more when reaching the end
-        onEndReachedThreshold={0.5} // Trigger when 50% away from the bottom
-        ListFooterComponent={loading && <Text style={{textAlign: 'center'}}>Loading more...</Text>} // Show loading indicator at the bottom
-    />
+        <FlatList
+          data={games}
+          keyExtractor={keyExtractor}  // Updated keyExtractor to ensure unique keys
+          renderItem={renderGameItem}
+          numColumns={2}
+          contentContainerStyle={styles.listContainer}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+        />
       )}
     </View>
   );
@@ -159,33 +159,49 @@ const Home = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
+    padding: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
   },
   searchInput: {
     height: 40,
     borderColor: 'gray',
-    paddingLeft: 8,
-    margin: 10,
-    borderRadius: 50,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginBottom: 16,
     backgroundColor: '#32D3CA',
   },
-  itemContainer: {
+  listContainer: {
+    paddingBottom: 16,
+  },
+  gameItem: {
+    flex: 1,
     alignItems: 'center',
     margin: 10,
   },
-  image: {
+  gameImage: {
     width: 150,
     height: 200,
     resizeMode: 'cover',
-    borderRadius: 10,
+    borderRadius: 8,
   },
-  text: {
-    marginTop: 5,
-    fontSize: 14,
+  noImage: {
+    width: 150,
+    height: 150,
+    backgroundColor: '#ddd',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  gameTitle: {
+    marginTop: 8,
+    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-    width: 150,
-    lineHeight: 18,
   },
 });
 
