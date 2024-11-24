@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
 
 const Home = () => {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1); // Track the current page
-  const [isEndReached, setIsEndReached] = useState(false); // Flag to prevent unnecessary API calls
+  const [page, setPage] = useState(1); 
+  const [isEndReached, setIsEndReached] = useState(false); 
+  const router = useRouter();
 
   // Fetch games on component mount and page change
   useEffect(() => {
@@ -39,7 +41,7 @@ const Home = () => {
           : null,
       }));
 
-      // If there are fewer games than requested, set isEndReached to true
+      
       if (formattedGames.length < 10) {
         setIsEndReached(true);
       }
@@ -55,10 +57,10 @@ const Home = () => {
   const handleSearch = async (text) => {
     setSearchQuery(text);
   
-    // If the search query is empty, reset to default games (no search)
+    
     if (!text.trim()) {
-      setGames([]); // Clear the game list
-      fetchGames(page); // Fetch the default games (without search)
+      setGames([]); 
+      fetchGames(page); 
       return;
     }
   
@@ -67,13 +69,13 @@ const Home = () => {
       const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi'; // Replace with your IGDB Client-ID
       const accessToken = 'kq7czy3yghxsjrx5kinwzjf5x2nzlx'; // Replace with your IGDB Access Token
   
-      // Throttle by waiting 1 second before making the request to avoid overloading the API
+      
       await new Promise((resolve) => setTimeout(resolve, 1000));
   
       const query = `search "${text}"; fields id, name, cover.url; limit 10;`;
   
-      if (text.trim()) { // Only make the request if there is valid input
-        console.log('Making request with query:', query); // Log the query
+      if (text.trim()) { 
+        console.log('Making request with query:', query); 
         const response = await axios.post(
           'https://api.igdb.com/v4/games',
           query,
@@ -98,7 +100,7 @@ const Home = () => {
     } catch (error) {
       console.error('Error fetching games:', error.message);
       if (error.response) {
-        console.error('Response data:', error.response.data); // Log the error response
+        console.error('Response data:', error.response.data); 
       }
       if (error.response && error.response.status === 400) {
         console.log('Bad request error. Please check the query or API parameters.');
@@ -108,8 +110,11 @@ const Home = () => {
     }
   };
 
-  const renderGameItem = ({ item, index }) => (
-    <TouchableOpacity style={styles.gameItem}>
+  const renderGameItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.gameItem}
+      onPress={() => router.push(`/GameDetails?gameId=${item.id}`)} // Navigate to GameDetails
+    >
       {item.coverUrl ? (
         <Image source={{ uri: item.coverUrl }} style={styles.gameImage} />
       ) : (
