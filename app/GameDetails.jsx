@@ -18,7 +18,8 @@ const GameDetails = () => {
 
         const response = await axios.post(
           'https://api.igdb.com/v4/games',
-          `fields name, summary, cover.url, screenshots.url; where id = ${gameId};`,
+          `fields name, summary, cover.url, screenshots.url, first_release_date, platforms.name, genres.name, involved_companies.company.name; 
+           where id = ${gameId};`,
           {
             headers: {
               'Client-ID': clientId,
@@ -44,6 +45,15 @@ const GameDetails = () => {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
 
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString();
+  };
+
+  const renderCompanies = () => {
+    return gameDetails.involved_companies?.map((company) => company.company.name).join(', ') || 'N/A';
+  };
+
   return (
     <ScrollView>
       <View style={styles.container}>
@@ -67,6 +77,24 @@ const GameDetails = () => {
             </ScrollView>
             <Text style={styles.title}>{gameDetails.name}</Text>
             <Text style={styles.description}>{gameDetails.summary || 'No description available.'}</Text>
+
+            <View style={styles.infoContainer}>
+              <Text style={styles.info}>
+                <Text style={styles.infoLabel}>Release Year:</Text>{' '}
+                {gameDetails.first_release_date ? formatDate(gameDetails.first_release_date) : 'N/A'}
+              </Text>
+              <Text style={styles.info}>
+                <Text style={styles.infoLabel}>Platforms:</Text>{' '}
+                {gameDetails.platforms?.map((platform) => platform.name).join(', ') || 'N/A'}
+              </Text>
+              <Text style={styles.info}>
+                <Text style={styles.infoLabel}>Genres:</Text>{' '}
+                {gameDetails.genres?.map((genre) => genre.name).join(', ') || 'N/A'}
+              </Text>
+              <Text style={styles.info}>
+                <Text style={styles.infoLabel}>Involved Companies:</Text> {renderCompanies()}
+              </Text>
+            </View>
           </>
         ) : (
           <Text>No game details found.</Text>
@@ -97,6 +125,17 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 16,
+    marginBottom: 16,
+  },
+  infoContainer: {
+    marginTop: 16,
+  },
+  info: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  infoLabel: {
+    fontWeight: 'bold',
   },
 });
 
