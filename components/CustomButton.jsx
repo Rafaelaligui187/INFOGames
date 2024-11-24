@@ -9,7 +9,7 @@ const CustomButton = ({title, handlePress, containerStyles, textStyles, isLoadin
       activeOpacity={0.7}
       className={`bg-originalColor min-h-[62px] rounded-3xl justify-center items-center ${containerStyles} ${isLoading ? 'opacity-50': ''}`}
     >
-      <Text className={`font-u_light text-lg ${textStyles}`}>{title}</Text>
+      <Text className={`text-lg ${textStyles}`}>{title}</Text>
 
     </TouchableOpacity>
   )

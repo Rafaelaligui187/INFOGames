@@ -11,7 +11,6 @@ const Home = () => {
   const [isEndReached, setIsEndReached] = useState(false); 
   const router = useRouter();
 
-  // Fetch games on component mount and page change
   useEffect(() => {
     fetchGames(page);
   }, [page]);
@@ -19,8 +18,8 @@ const Home = () => {
   const fetchGames = async (pageNumber) => {
     setLoading(true);
     try {
-      const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi'; // Replace with your IGDB Client-ID
-      const accessToken = 'kq7czy3yghxsjrx5kinwzjf5x2nzlx'; // Replace with your IGDB Access Token
+      const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi';
+      const accessToken = 'kq7czy3yghxsjrx5kinwzjf5x2nzlx';
 
       const response = await axios.post(
         'https://api.igdb.com/v4/games',
@@ -41,7 +40,6 @@ const Home = () => {
           : null,
       }));
 
-      
       if (formattedGames.length < 10) {
         setIsEndReached(true);
       }
@@ -56,26 +54,23 @@ const Home = () => {
 
   const handleSearch = async (text) => {
     setSearchQuery(text);
-  
-    
+
     if (!text.trim()) {
-      setGames([]); 
-      fetchGames(page); 
+      setGames([]);
+      fetchGames(page);
       return;
     }
-  
+
     setLoading(true);
     try {
-      const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi'; // Replace with your IGDB Client-ID
-      const accessToken = 'kq7czy3yghxsjrx5kinwzjf5x2nzlx'; // Replace with your IGDB Access Token
-  
-      
+      const clientId = '5o4462x5j4ijlrvi0b8mcj3s96dwpi';
+      const accessToken = 'kq7czy3yghxsjrx5kinwzjf5x2nzlx';
+
       await new Promise((resolve) => setTimeout(resolve, 1000));
-  
+
       const query = `search "${text}"; fields id, name, cover.url; limit 10;`;
-  
-      if (text.trim()) { 
-        console.log('Making request with query:', query); 
+
+      if (text.trim()) {
         const response = await axios.post(
           'https://api.igdb.com/v4/games',
           query,
@@ -86,7 +81,7 @@ const Home = () => {
             },
           }
         );
-  
+
         const formattedGames = response.data.map((game) => ({
           id: game.id,
           name: game.name,
@@ -94,26 +89,31 @@ const Home = () => {
             ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
             : null,
         }));
-  
+
         setGames(formattedGames);
       }
     } catch (error) {
       console.error('Error fetching games:', error.message);
       if (error.response) {
-        console.error('Response data:', error.response.data); 
-      }
-      if (error.response && error.response.status === 400) {
-        console.log('Bad request error. Please check the query or API parameters.');
+        console.error('Response data:', error.response.data);
       }
     } finally {
       setLoading(false);
     }
   };
 
+  const clearSearch = () => {
+    setSearchQuery('');
+    setGames([]);
+    fetchGames(1);
+    setPage(1);
+    setIsEndReached(false);
+  };
+
   const renderGameItem = ({ item }) => (
     <TouchableOpacity
       style={styles.gameItem}
-      onPress={() => router.push(`/GameDetails?gameId=${item.id}`)} // Navigate to GameDetails
+      onPress={() => router.push(`/GameDetails?gameId=${item.id}`)}
     >
       {item.coverUrl ? (
         <Image source={{ uri: item.coverUrl }} style={styles.gameImage} />
@@ -125,11 +125,7 @@ const Home = () => {
       <Text style={styles.gameTitle}>{item.name}</Text>
     </TouchableOpacity>
   );
-  
-  // Use the index and id to create a unique key
-  const keyExtractor = (item, index) => `${item.id}-${index}`;
 
-  // Function to trigger when the user reaches the bottom of the list
   const handleLoadMore = () => {
     if (!loading && !isEndReached) {
       setPage((prevPage) => prevPage + 1);
@@ -137,19 +133,26 @@ const Home = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search games"
-        value={searchQuery}
-        onChangeText={handleSearch}
-      />
+    <View className="bg-slate-800" style={styles.container}>
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search games"
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity style={styles.clearButton} onPress={clearSearch}>
+            <Text style={styles.clearText}>X</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       {loading && page === 1 ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <FlatList
           data={games}
-          keyExtractor={keyExtractor}  // Updated keyExtractor to ensure unique keys
+          keyExtractor={(item, index) => `${item.id}-${index}`}
           renderItem={renderGameItem}
           numColumns={2}
           contentContainerStyle={styles.listContainer}
@@ -166,19 +169,34 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  searchContainer: {
+    position: 'relative',
     marginBottom: 16,
   },
   searchInput: {
     height: 40,
-    borderColor: 'gray',
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    marginBottom: 16,
-    backgroundColor: '#32D3CA',
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    backgroundColor: 'white',
+    paddingRight: 40, // Add padding to make space for the "X" button
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 10,
+    top: 8,
+    padding: 5,
+    backgroundColor: '#ccc',
+    borderRadius: 50,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: 'black',
   },
   listContainer: {
     paddingBottom: 16,
@@ -207,6 +225,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
+    color: 'white',
   },
 });
 

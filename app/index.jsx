@@ -10,16 +10,16 @@ export default function App() {
   return (
     <SafeAreaView>
       <ScrollView contentContainerStyle={{height: '100%'}}>
-        <View className="w-full justify-center items-center min-h-screen h-[85vh] px-4">
+        <View backgroundColor='#1a292a' className="w-full justify-center items-center min-h-screen h-[85vh] px-4">
           <Image 
             source={images.Applogo}
             className="w-[300px] h-[223px] pt-10"
             resizeMethod='contain'
           />
           <View>
-            <Text className="text-5xl text-center">INFOGames</Text>
+            <Text className="text-5xl text-center text-white">INFOGames</Text>
           </View>
-          <Text className="text-center text-sm font-u_light">
+          <Text className="text-center text-sm font-u_light text-white">
           "INFOGames: Discover, explore, and keep track of all your favorite games in one convenient app!"
           </Text>
           
