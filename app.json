@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "INFOGames",
-    "slug": "INFOGames",
+    "slug": "infogames",
     "scheme": "INFOGames",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -30,7 +30,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "219d7170-40f4-41ee-8d26-5cd702ded9df"
+        "projectId": "5404060e-1c74-4bf8-822b-a109f137afc8"
       }
     }
   }
